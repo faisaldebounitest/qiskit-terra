@@ -52,12 +52,15 @@ def circuit_to_dag(circuit, ignore_global_phase=False):
     for register in circuit.cregs:
         dagcircuit.add_creg(register)
 
-    if not ignore_global_phase and len(circuit.qubits) > 0 and circuit.global_phase != 0:
-        from qiskit.circuit.library.standard_gates import U1Gate, U3Gate
-        dagcircuit.apply_operation_back(U1Gate(circuit.global_phase),qargs=[dagcircuit.wires[0]])
-        dagcircuit.apply_operation_back(U3Gate(pi,0,pi),qargs=[dagcircuit.wires[0]])
-        dagcircuit.apply_operation_back(U1Gate(circuit.global_phase),qargs=[dagcircuit.wires[0]])
-        dagcircuit.apply_operation_back(U3Gate(pi,0,pi),qargs=[dagcircuit.wires[0]])
+    if (not ignore_global_phase) and len(circuit.qubits) > 0:
+        global_phase_is_zero = circuit.global_phase == -circuit.global_phase
+                # for some reason, circuit.global_phase == 0 wasn't always working!
+        if not global_phase_is_zero:
+            from qiskit.circuit.library.standard_gates import U1Gate, U3Gate
+            dagcircuit.apply_operation_back(U1Gate(circuit.global_phase),qargs=[dagcircuit.wires[0]])
+            dagcircuit.apply_operation_back(U3Gate(pi,0,pi),qargs=[dagcircuit.wires[0]])
+            dagcircuit.apply_operation_back(U1Gate(circuit.global_phase),qargs=[dagcircuit.wires[0]])
+            dagcircuit.apply_operation_back(U3Gate(pi,0,pi),qargs=[dagcircuit.wires[0]])
 
     for instruction, qargs, cargs in circuit.data:
         dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs)
