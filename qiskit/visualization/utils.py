@@ -98,7 +98,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
     # default to left
     justify = justify if justify in ('right', 'none') else 'left'
 
-    dag = circuit_to_dag(circuit)
+    dag = circuit_to_dag(circuit, ignore_global_phase=True)
     ops = []
     qregs = dag.qubits
     cregs = dag.clbits

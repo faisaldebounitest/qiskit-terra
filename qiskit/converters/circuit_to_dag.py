@@ -13,9 +13,10 @@
 """Helper function for converting a circuit to a dag"""
 
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from numpy import pi
 
 
-def circuit_to_dag(circuit):
+def circuit_to_dag(circuit, ignore_global_phase=False):
     """Build a ``DAGCircuit`` object from a ``QuantumCircuit``.
 
     Args:
@@ -45,12 +46,18 @@ def circuit_to_dag(circuit):
     """
     dagcircuit = DAGCircuit()
     dagcircuit.name = circuit.name
-    dagcircuit.global_phase = circuit.global_phase
 
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)
     for register in circuit.cregs:
         dagcircuit.add_creg(register)
+
+    if not ignore_global_phase and len(circuit.qubits) > 0 and circuit.global_phase != 0:
+        from qiskit.circuit.library.standard_gates import U1Gate, U3Gate
+        dagcircuit.apply_operation_back(U1Gate(circuit.global_phase),qargs=[dagcircuit.wires[0]])
+        dagcircuit.apply_operation_back(U3Gate(pi,0,pi),qargs=[dagcircuit.wires[0]])
+        dagcircuit.apply_operation_back(U1Gate(circuit.global_phase),qargs=[dagcircuit.wires[0]])
+        dagcircuit.apply_operation_back(U3Gate(pi,0,pi),qargs=[dagcircuit.wires[0]])
 
     for instruction, qargs, cargs in circuit.data:
         dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs)

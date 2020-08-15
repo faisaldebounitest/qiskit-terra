@@ -298,6 +298,10 @@ class TestUnrollerCompatability(QiskitTestCase):
         ref_circuit.u1(pi, qr[0])
         ref_circuit.u1(pi/4, qr[0])
         ref_circuit.u3(0.5, 0, 0, qr[0])
+        ref_circuit.u1(-0.3/2, qr[0])
+        ref_circuit.u3(pi, 0, pi, qr[0])
+        ref_circuit.u1(-0.3/2, qr[0])
+        ref_circuit.u3(pi, 0, pi, qr[0])
         ref_circuit.u1(0.3, qr[0])
         ref_circuit.u3(0.1, -pi/2, pi/2, qr[0])
         ref_circuit.measure(qr[0], cr[0])
@@ -473,16 +477,16 @@ class TestUnrollerCompatability(QiskitTestCase):
 
         theta = Parameter('theta')
 
-        qc.rz(theta, qr[0])
+        qc.rx(theta, qr[0])
         dag = circuit_to_dag(qc)
 
-        pass_ = UnrollCustomDefinitions(std_eqlib, ['u1', 'cx'])
+        pass_ = UnrollCustomDefinitions(std_eqlib, ['u3', 'cx'])
         dag = pass_.run(dag)
 
-        unrolled_dag = BasisTranslator(std_eqlib, ['u1', 'cx']).run(dag)
+        unrolled_dag = BasisTranslator(std_eqlib, ['u3', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr)
-        expected.u1(theta, qr[0])
+        expected.u3(theta, -pi/2, pi/2, qr[0])
 
         self.assertEqual(circuit_to_dag(expected), unrolled_dag)
 
@@ -495,15 +499,15 @@ class TestUnrollerCompatability(QiskitTestCase):
         phi = Parameter('phi')
         sum_ = theta + phi
 
-        qc.rz(sum_, qr[0])
+        qc.rx(sum_, qr[0])
         dag = circuit_to_dag(qc)
-        pass_ = UnrollCustomDefinitions(std_eqlib, ['u1', 'cx'])
+        pass_ = UnrollCustomDefinitions(std_eqlib, ['u3', 'cx'])
         dag = pass_.run(dag)
 
-        unrolled_dag = BasisTranslator(std_eqlib, ['u1', 'cx']).run(dag)
+        unrolled_dag = BasisTranslator(std_eqlib, ['u3', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr)
-        expected.u1(sum_, qr[0])
+        expected.u3(sum_, -pi/2, pi/2, qr[0])
 
         self.assertEqual(circuit_to_dag(expected), unrolled_dag)
 
@@ -533,9 +537,9 @@ class TestUnrollerCompatability(QiskitTestCase):
 
         theta = Parameter('theta')
 
-        subqc.rz(theta, qr1[0])
+        subqc.rx(theta, qr1[0])
         subqc.cx(qr1[0], qr1[1])
-        subqc.rz(theta, qr1[1])
+        subqc.rx(theta, qr1[1])
 
         # Expanding across register with shared parameter
         qr2 = QuantumRegister(4)
@@ -546,18 +550,18 @@ class TestUnrollerCompatability(QiskitTestCase):
         qc.append(sub_instr, [qr2[2], qr2[3]])
 
         dag = circuit_to_dag(qc)
-        pass_ = UnrollCustomDefinitions(mock_sel, ['u1', 'cx'])
+        pass_ = UnrollCustomDefinitions(mock_sel, ['u3', 'cx'])
         dag = pass_.run(dag)
 
-        out_dag = BasisTranslator(mock_sel, ['u1', 'cx']).run(dag)
+        out_dag = BasisTranslator(mock_sel, ['u3', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr2)
-        expected.u1(theta, qr2[0])
-        expected.u1(theta, qr2[2])
+        expected.u3(theta, -pi/2, pi/2, qr2[0])
+        expected.u3(theta, -pi/2, pi/2, qr2[2])
         expected.cx(qr2[0], qr2[1])
         expected.cx(qr2[2], qr2[3])
-        expected.u1(theta, qr2[1])
-        expected.u1(theta, qr2[3])
+        expected.u3(theta, -pi/2, pi/2, qr2[1])
+        expected.u3(theta, -pi/2, pi/2, qr2[3])
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
 
@@ -573,18 +577,18 @@ class TestUnrollerCompatability(QiskitTestCase):
         qc.append(sub_instr, [qr2[2], qr2[3]])
 
         dag = circuit_to_dag(qc)
-        pass_ = UnrollCustomDefinitions(mock_sel, ['u1', 'cx'])
+        pass_ = UnrollCustomDefinitions(mock_sel, ['u3', 'cx'])
         dag = pass_.run(dag)
 
-        out_dag = BasisTranslator(mock_sel, ['u1', 'cx']).run(dag)
+        out_dag = BasisTranslator(mock_sel, ['u3', 'cx']).run(dag)
 
         expected = QuantumCircuit(qr2)
-        expected.u1(phi, qr2[0])
-        expected.u1(gamma, qr2[2])
+        expected.u3(phi, -pi/2, pi/2, qr2[0])
+        expected.u3(gamma, -pi/2, pi/2, qr2[2])
         expected.cx(qr2[0], qr2[1])
         expected.cx(qr2[2], qr2[3])
-        expected.u1(phi, qr2[1])
-        expected.u1(gamma, qr2[3])
+        expected.u3(phi, -pi/2, pi/2, qr2[1])
+        expected.u3(gamma, -pi/2, pi/2, qr2[3])
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
 

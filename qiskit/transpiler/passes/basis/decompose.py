@@ -52,6 +52,6 @@ class Decompose(TransformationPass):
             if len(rule) == 1 and len(node.qargs) == len(rule[0][1]):
                 dag.substitute_node(node, rule[0][0], inplace=True)
             else:
-                decomposition = circuit_to_dag(node.op.definition)
+                decomposition = circuit_to_dag(node.op.definition, ignore_global_phase=True)
                 dag.substitute_node_with_dag(node, decomposition)
         return dag

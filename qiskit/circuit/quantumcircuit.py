@@ -213,7 +213,7 @@ class QuantumCircuit:
     def __eq__(self, other):
         # TODO: remove the DAG from this function
         from qiskit.converters import circuit_to_dag
-        return circuit_to_dag(self) == circuit_to_dag(other)
+        return circuit_to_dag(self, ignore_global_phase=True) == circuit_to_dag(other, ignore_global_phase=True)
 
     @classmethod
     def _increment_instances(cls):
@@ -386,7 +386,7 @@ class QuantumCircuit:
         # is actually `reps` times this circuit, and it is currently much faster than `compose`.
         if reps > 0:
             try:  # try to append as gate if possible to not disallow to_gate
-                inst = self.to_gate()
+                inst = self.to_gate(ignore_global_phase=True)
             except QiskitError:
                 inst = self.to_instruction()
             for _ in range(reps):
@@ -449,7 +449,7 @@ class QuantumCircuit:
             CircuitError: If the circuit contains a non-unitary operation and cannot be controlled.
         """
         try:
-            gate = self.to_gate()
+            gate = self.to_gate(ignore_global_phase=True)
         except QiskitError:
             raise CircuitError('The circuit contains non-unitary operations and cannot be '
                                'controlled. Note that no qiskit.circuit.Instruction objects may '
@@ -460,6 +460,15 @@ class QuantumCircuit:
         controlled_circ = QuantumCircuit(control_qreg, *self.qregs,
                                          name='c_{}'.format(self.name))
         controlled_circ.append(controlled_gate, controlled_circ.qubits)
+        # apply controlled global phase
+        if self.global_phase:
+            if num_ctrl_qubits < 2:
+                controlled_circ.u1(self.global_phase, control_qreg[0])
+            else:
+                controlled_circ.mcu1(self.global_phase,
+                                     control_qreg[:-1], control_qreg[-1])
+        else:
+            controlled_circ.global_phase = self.global_phase
 
         return controlled_circ
 
@@ -925,7 +934,7 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
         return circuit_to_instruction(self, parameter_map)
 
-    def to_gate(self, parameter_map=None, label=None):
+    def to_gate(self, parameter_map=None, label=None, ignore_global_phase=False):
         """Create a Gate out of this circuit.
 
         Args:
@@ -940,7 +949,7 @@ class QuantumCircuit:
             (can be decomposed back)
         """
         from qiskit.converters.circuit_to_gate import circuit_to_gate
-        return circuit_to_gate(self, parameter_map, label=label)
+        return circuit_to_gate(self, parameter_map, label=label, ignore_global_phase=ignore_global_phase)
 
     def decompose(self):
         """Call a decomposition pass on this circuit,
@@ -953,8 +962,10 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
         pass_ = Decompose()
-        decomposed_dag = pass_.run(circuit_to_dag(self))
-        return dag_to_circuit(decomposed_dag)
+        decomposed_dag = pass_.run(circuit_to_dag(self,ignore_global_phase=True))
+        circuit = dag_to_circuit(decomposed_dag)
+        circuit.global_phase = self.global_phase
+        return circuit
 
     def _check_compatible_regs(self, rhs):
         """Raise exception if the circuits are defined on incompatible registers"""

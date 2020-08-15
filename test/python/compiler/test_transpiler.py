@@ -413,12 +413,16 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(qr)
 
         theta = Parameter('theta')
-        qc.rz(theta, qr[0])
+        qc.rx(theta, qr[0])
+                    # using rz will correctly add phase gates
+                    # expected needs to account for that
+                    # since this is not what this test is testing
+                    # using rx is simpler
 
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
         expected_qc = QuantumCircuit(qr)
-        expected_qc.u1(theta, qr[0])
+        expected_qc.u3(theta, -math.pi/2, math.pi/2, qr[0])
 
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -428,14 +432,14 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(qr)
 
         theta = Parameter('theta')
-        qc.rz(theta, qr[0])
+        qc.rx(theta, qr[0])
 
         transpiled_qc = transpile(qc, backend=FakeMelbourne(),
                                   initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
-        expected_qc.u1(theta, qr[0])
+        expected_qc.u3(theta, -math.pi/2, math.pi/2, qr[0])
 
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -447,12 +451,12 @@ class TestTranspile(QiskitTestCase):
 
         theta = Parameter('theta')
         square = theta * theta
-        qc.rz(square, qr[0])
+        qc.rx(square, qr[0])
 
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
 
         expected_qc = QuantumCircuit(qr)
-        expected_qc.u1(square, qr[0])
+        expected_qc.u3(square, -math.pi/2, math.pi/2, qr[0])
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_parameter_expression_circuit_for_device(self):
@@ -463,14 +467,14 @@ class TestTranspile(QiskitTestCase):
 
         theta = Parameter('theta')
         square = theta * theta
-        qc.rz(square, qr[0])
+        qc.rx(square, qr[0])
 
         transpiled_qc = transpile(qc, backend=FakeMelbourne(),
                                   initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
-        expected_qc.u1(square, qr[0])
+        expected_qc.u3(square, -math.pi/2, math.pi/2, qr[0])
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_final_measurement_barrier_for_devices(self):

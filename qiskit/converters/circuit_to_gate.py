@@ -15,9 +15,9 @@
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
+from numpy import pi
 
-
-def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label=None):
+def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label=None, ignore_global_phase=False):
     """Build a ``Gate`` object from a ``QuantumCircuit``.
 
     The gate is anonymous (not tied to a named quantum register),
@@ -92,6 +92,14 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     if gate.num_qubits > 0:
         q = QuantumRegister(gate.num_qubits, 'q')
 
+    # induce global phase
+    if not ignore_global_phase and gate.num_qubits > 0 and target.global_phase != 0:
+        from qiskit.circuit.library.standard_gates import U1Gate, XGate
+        rules += [(U1Gate(target.global_phase), [q[0]], [])]
+        rules += [(XGate(), [q[0]], [])]
+        rules += [(U1Gate(target.global_phase), [q[0]], [])]
+        rules += [(XGate(), [q[0]], [])]
+
     # The 3rd parameter in the output tuple) is hard coded to [] because
     # Gate objects do not have cregs set and we've verified that all
     # instructions are gates
@@ -100,7 +108,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
                    list(map(lambda y: q[find_bit_position(y)], x[1])),
                    []),
         rules))
-    qc = QuantumCircuit(q, name=gate.name, global_phase=target.global_phase)
+    qc = QuantumCircuit(q, name=gate.name)
     qc._data = rules
     gate.definition = qc
     return gate
